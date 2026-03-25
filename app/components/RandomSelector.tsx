@@ -1,6 +1,5 @@
 "use client";
 
-import { log } from "console";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -332,7 +331,7 @@ const css = `
 // ── Helpers ────────────────────────────────────────────────────────────────
 const ITEM_H = 48; // px — must match .rs-drum-item height
 
-function easeOutCubic(t) {
+function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3);
 }
 
@@ -344,7 +343,7 @@ export default function RandomSelector() {
   const [offset, setOffset] = useState(0);           
   const [activeIdx, setActiveIdx] = useState(0);     
 
-  const rafRef = useRef(null);
+  const rafRef = useRef<number | null>(null);
   const trackRef = useRef(null);
 
   const MIN_SLOTS = 9;
@@ -353,7 +352,7 @@ export default function RandomSelector() {
     : Array.from({ length: Math.max(MIN_SLOTS, items.length * 100) }, (_, i) => items[i % items.length]);
 
   const centerBlock = Math.floor(drumItems.length / 3);
-  const centeredAt = (idx) => -(idx * ITEM_H) + (400 / 2 - ITEM_H / 2);
+  const centeredAt = (idx: number) => -(idx * ITEM_H) + (400 / 2 - ITEM_H / 2);
 
   // ── Spin logic ─────────────────────────────────────────────────────────
   const spin = useCallback(() => {
@@ -369,14 +368,12 @@ export default function RandomSelector() {
 
     // add extra spins for drama
     const extraSpins = (10 + Math.floor(Math.random() * 5)) * items.length * ITEM_H;
-    console.log(winnerIdx);
-    
     const totalDelta = endOffset - startOffset - extraSpins;
 
     const duration = 4000 + items.length * 100;
     const start = performance.now();
 
-    const animate = (now) => {
+    const animate = (now: number) => {
       const elapsed = now - start;
       const t = Math.min(elapsed / duration, 1);
       const eased = easeOutCubic(t);
@@ -399,7 +396,7 @@ export default function RandomSelector() {
     rafRef.current = requestAnimationFrame(animate);
   }, [spinning, items, offset, centerBlock, drumItems.length]);
 
-  useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
 
   // Reset drum position when items change
   useEffect(() => {
@@ -416,9 +413,9 @@ export default function RandomSelector() {
     setInput("");
   };
 
-  const removeItem = (idx) => setItems((p) => p.filter((_, i) => i !== idx));
+  const removeItem = (idx: number) => setItems((p) => p.filter((_, i) => i !== idx));
 
-  const handleKey = (e) => { if (e.key === "Enter") addItem(); };
+  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") addItem(); };
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
