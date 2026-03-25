@@ -1,5 +1,6 @@
 "use client";
 
+import { log } from "console";
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -7,14 +8,14 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --border: #1e1e2e;
-    --accent: #f0c040;
-    --accent2: #ff4d6d;
-    --text: #e8e8f0;
-    --muted: #55556a;
-    --winner-glow: 0 0 30px #f0c04080, 0 0 60px #f0c04030;
+    --bg: #ffffff;
+    --surface: #f5f5f5;
+    --border: #cccccc;
+    --accent: #007bff;
+    --accent2: #dc3545;
+    --text: #333333;
+    --muted: #666666;
+    --winner-glow: 0 0 30px #007bff80, 0 0 60px #007bff30;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,8 +41,8 @@ const css = `
       to bottom,
       transparent 0px,
       transparent 3px,
-      rgba(0,0,0,0.08) 3px,
-      rgba(0,0,0,0.08) 4px
+      rgba(0,0,0,0.02) 3px,
+      rgba(0,0,0,0.02) 4px
     );
     pointer-events: none;
     z-index: 100;
@@ -52,7 +53,7 @@ const css = `
     font-size: clamp(42px, 8vw, 80px);
     letter-spacing: 0.06em;
     color: var(--accent);
-    text-shadow: 0 0 20px #f0c04060, 4px 4px 0 #a07a00;
+    text-shadow: 0 0 20px #007bff60, 4px 4px 0 #0056b3;
     margin-bottom: 8px;
     text-align: center;
   }
@@ -66,15 +67,10 @@ const css = `
   }
 
   .rs-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 24px;
     width: 100%;
-    max-width: 860px;
-  }
-
-  @media (max-width: 640px) {
-    .rs-layout { grid-template-columns: 1fr; }
   }
 
   /* ── Input panel ── */
@@ -86,6 +82,8 @@ const css = `
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-width: 80%;
+    margin: 0 auto;
   }
 
   .rs-label {
@@ -127,7 +125,7 @@ const css = `
     cursor: pointer;
     transition: background 0.15s, transform 0.1s;
   }
-  .rs-btn:hover { background: #ffd060; }
+  .rs-btn:hover { background: #0056b3; }
   .rs-btn:active { transform: scale(0.96); }
 
   .rs-item-list {
@@ -200,7 +198,7 @@ const css = `
 
   .rs-drum-wrapper {
     width: 100%;
-    height: 240px;
+    height: 400px;
     position: relative;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -227,7 +225,7 @@ const css = `
     left: 0; right: 0;
     top: calc(50% - 24px);
     height: 48px;
-    background: rgba(240,192,64,0.06);
+    background: rgba(0,123,255,0.06);
     z-index: 1;
     pointer-events: none;
   }
@@ -276,8 +274,8 @@ const css = `
 
   .rs-spin-btn {
     width: 100%;
-    background: linear-gradient(135deg, var(--accent) 0%, #ffaa00 100%);
-    color: #000;
+    background: linear-gradient(135deg, var(--accent) 0%, #0056b3 100%);
+    color: #fff;
     border: none;
     border-radius: 3px;
     font-family: 'Bebas Neue', sans-serif;
@@ -286,7 +284,7 @@ const css = `
     padding: 14px 0;
     cursor: pointer;
     transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
-    box-shadow: 0 4px 20px #f0c04030;
+    box-shadow: 0 4px 20px #007bff30;
   }
   .rs-spin-btn:hover:not(:disabled) {
     opacity: 0.9;
@@ -301,7 +299,7 @@ const css = `
     border-radius: 3px;
     padding: 14px;
     text-align: center;
-    background: rgba(240,192,64,0.05);
+    background: rgba(0,123,255,0.05);
     box-shadow: var(--winner-glow);
     animation: popIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
   }
@@ -321,7 +319,7 @@ const css = `
     font-size: 28px;
     letter-spacing: 0.05em;
     color: var(--accent);
-    text-shadow: 0 0 12px #f0c04080;
+    text-shadow: 0 0 12px #007bff80;
   }
 
   .rs-count {
@@ -343,7 +341,6 @@ export default function RandomSelector() {
   const [items, setItems] = useState(["Test"]);
   const [input, setInput] = useState("");
   const [spinning, setSpinning] = useState(false);
-  const [winner, setWinner] = useState(null);
   const [offset, setOffset] = useState(0);           
   const [activeIdx, setActiveIdx] = useState(0);     
 
@@ -353,15 +350,14 @@ export default function RandomSelector() {
   const MIN_SLOTS = 9;
   const drumItems = items.length === 0
     ? []
-    : Array.from({ length: Math.max(MIN_SLOTS, items.length * 3) }, (_, i) => items[i % items.length]);
+    : Array.from({ length: Math.max(MIN_SLOTS, items.length * 100) }, (_, i) => items[i % items.length]);
 
   const centerBlock = Math.floor(drumItems.length / 3);
-  const centeredAt = (idx) => -(idx * ITEM_H) + (240 / 2 - ITEM_H / 2);
+  const centeredAt = (idx) => -(idx * ITEM_H) + (400 / 2 - ITEM_H / 2);
 
   // ── Spin logic ─────────────────────────────────────────────────────────
   const spin = useCallback(() => {
     if (spinning || items.length < 2) return;
-    setWinner(null);
     setSpinning(true);
 
     const winnerIdx = Math.floor(Math.random() * items.length);
@@ -372,10 +368,12 @@ export default function RandomSelector() {
     const endOffset = centeredAt(targetSlot);
 
     // add extra spins for drama
-    const extraSpins = (3 + Math.floor(Math.random() * 3)) * items.length * ITEM_H;
+    const extraSpins = (10 + Math.floor(Math.random() * 5)) * items.length * ITEM_H;
+    console.log(winnerIdx);
+    
     const totalDelta = endOffset - startOffset - extraSpins;
 
-    const duration = 2200 + items.length * 80;
+    const duration = 4000 + items.length * 100;
     const start = performance.now();
 
     const animate = (now) => {
@@ -386,7 +384,7 @@ export default function RandomSelector() {
 
       setOffset(current);
       // compute which drum slot is currently centered
-      const centeredSlot = Math.round(-current / ITEM_H + (240 / 2 - ITEM_H / 2) / ITEM_H);
+      const centeredSlot = Math.round(-current / ITEM_H + (400 / 2 - ITEM_H / 2) / ITEM_H);
       setActiveIdx(((centeredSlot % drumItems.length) + drumItems.length) % drumItems.length);
 
       if (t < 1) {
@@ -395,7 +393,6 @@ export default function RandomSelector() {
         setOffset(endOffset);
         setActiveIdx(targetSlot % drumItems.length);
         setSpinning(false);
-        setWinner(items[winnerIdx]);
       }
     };
 
@@ -408,7 +405,6 @@ export default function RandomSelector() {
   useEffect(() => {
     setOffset(centeredAt(centerBlock));
     setActiveIdx(centerBlock % Math.max(drumItems.length, 1));
-    setWinner(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
 
@@ -501,13 +497,6 @@ export default function RandomSelector() {
             >
               {spinning ? "ĐANG QUAY SỐ" : "QUAY"}
             </button>
-
-            {winner && !spinning && (
-              <div className="rs-result">
-                <div className="rs-result-label">Winner</div>
-                <div className="rs-result-name">{winner}</div>
-              </div>
-            )}
 
             {items.length < 2 && (
               <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
