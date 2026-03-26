@@ -342,6 +342,8 @@ export default function RandomSelector() {
   const [spinning, setSpinning] = useState(false);
   const [offset, setOffset] = useState(0);           
   const [activeIdx, setActiveIdx] = useState(0);     
+  const [winnerToDelete, setWinnerToDelete] = useState<string | null>(null);
+  const [finalOffset, setFinalOffset] = useState<number | null>(null);
 
   const rafRef = useRef<number | null>(null);
   const trackRef = useRef(null);
@@ -351,7 +353,9 @@ export default function RandomSelector() {
     ? []
     : Array.from({ length: Math.max(MIN_SLOTS, items.length * 100) }, (_, i) => items[i % items.length]);
 
-  const centerBlock = Math.floor(drumItems.length / 3);
+  // Align centerBlock to be a multiple of items.length so drumItems[centerBlock + i] = items[i]
+  const centerBlockCandidate = Math.floor(drumItems.length / 3);
+  const centerBlock = centerBlockCandidate - (centerBlockCandidate % Math.max(items.length, 1));
   const centeredAt = (idx: number) => -(idx * ITEM_H) + (400 / 2 - ITEM_H / 2);
 
   // ── Spin logic ─────────────────────────────────────────────────────────
@@ -390,6 +394,9 @@ export default function RandomSelector() {
         setOffset(endOffset);
         setActiveIdx(targetSlot % drumItems.length);
         setSpinning(false);
+        // Store the winner item and offset before deletion
+        setWinnerToDelete(items[winnerIdx]);
+        setFinalOffset(endOffset);
       }
     };
 
@@ -398,10 +405,22 @@ export default function RandomSelector() {
 
   useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
 
-  // Reset drum position when items change
+  // Delete winner and maintain offset after spin completes
   useEffect(() => {
-    setOffset(centeredAt(centerBlock));
-    setActiveIdx(centerBlock % Math.max(drumItems.length, 1));
+    if (winnerToDelete !== null && finalOffset !== null) {
+      setItems((prevItems) => prevItems.filter((item) => item !== winnerToDelete));
+      setOffset(finalOffset);
+      setWinnerToDelete(null);
+      setFinalOffset(null);
+    }
+  }, [winnerToDelete, finalOffset]);
+
+  // Reset drum position when items change (only if NOT after a deletion)
+  useEffect(() => {
+    if (winnerToDelete === null) {
+      setOffset(centeredAt(centerBlock));
+      setActiveIdx(centerBlock % Math.max(drumItems.length, 1));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
 
